@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+export DOCK_PWD=$(pwd)
+export DOCK_IMAGE=$(basename $(pwd))
+
+function dockerComposeRun() {
+  docker-compose run --rm --service-ports $@
+}
+
+case $1 in
+  "init")
+    MY_DIR=$(dirname $(readlink $0))
+    cp -i -r $MY_DIR/../templates/ .
+  ;;
+  "build")
+    docker build . --tag $DOCK_IMAGE
+  ;;
+  "logs")
+    shift 1
+    docker-compose logs -f $@
+    echo "Reminder: this was the logs command, stop processes with: dock stop"
+    ;;
+  "run")
+    shift 1
+    dockerComposeRun $@
+  ;;
+  "stop")
+    docker-compose stop
+  ;;
+  "console")
+    shift 1
+    dockerComposeRun console
+  ;;
+  "bundle")
+    shift 1
+    DOCK_BUNDLE_WITHOUT_GROUPS=${@:-production}
+    docker build --build-arg DOCK_BUNDLE_WITHOUT_GROUPS="$DOCK_BUNDLE_WITHOUT_GROUPS" --tag $DOCK_IMAGE .
+  ;;
+  "exec")
+    shift 1
+    dockerComposeRun default $@
+  ;;
+  *)
+    echo "Usage:"
+    echo ""
+    echo "dock init"
+    echo "dock build"
+    echo "dock bundle"
+    echo "dock run SERVICE"
+    echo "dock stop"
+    echo "dock console"
+    echo "dock exec CMD"
+    exit 1
+  ;;
+esac

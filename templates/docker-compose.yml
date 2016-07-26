@@ -1,0 +1,28 @@
+version: '2'
+services:
+  default:
+    image: ${DOCK_IMAGE}
+    volumes:
+      - .:${DOCK_PWD}
+    working_dir: ${DOCK_PWD}
+    env_file: .env
+    environment:
+      - RACK_ENV=development
+      - REDIS_URL=redis://redis:6379
+
+  console:
+    extends: default
+    environment:
+      - PAGER=more
+    depends_on:
+      - redis
+    command: pry
+
+  web:
+    extends: default
+    ports:
+      - "4567:4567"
+    command: ruby ./app.rb  # remember to bind 0.0.0.0
+
+  redis:
+    image: redis
