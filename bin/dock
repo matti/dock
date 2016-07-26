@@ -42,13 +42,15 @@ case $1 in
   *)
     echo "Usage:"
     echo ""
-    echo "dock init"
-    echo "dock build"
-    echo "dock bundle"
-    echo "dock run SERVICE"
-    echo "dock stop"
-    echo "dock console"
-    echo "dock exec CMD"
+    echo "dock init           # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
+    echo "dock build          # Builds a production container"
+    echo "dock bundle         # Builds a development container"
+    echo "dock run SERVICE    # Starts service SERVICE in foreground"
+    echo "dock logs           # Shows logs from other processes than the one started with run"
+    echo "dock stop           # Stops all services"
+    echo "dock console        # Runs service console (same as dock exec consolecmd)"
+    echo "dock exec CMD       # Runs CMD in the container"
+
     exit 1
   ;;
 esac
