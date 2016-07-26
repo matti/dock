@@ -19,5 +19,7 @@ get '/' do
 end
 " > app.rb
 
+mv Apkfile.sinatra Apkfile
+
 dock bundle
 dock run web
