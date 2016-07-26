@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+rm -rf scratch
+mkdir scratch
+cd scratch
+dock init
+echo "
+source 'https://rubygems.org'
+
+gem 'sinatra'
+" > Gemfile
+
+echo "
+require 'sinatra'
+set :bind, '0.0.0.0'
+
+get '/' do
+  'works'
+end
+" > app.rb
+
+dock bundle
+dock run web
