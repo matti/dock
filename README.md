@@ -2,6 +2,13 @@
 
 Opinionated local Docker development workflow for Ruby development.
 
+## install
+```
+git clone https://github.com/matti/dock.git
+cd dock && bin/install
+```
+
+## usage
 ```
 Usage:
 
