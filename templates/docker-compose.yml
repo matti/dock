@@ -23,6 +23,7 @@ services:
     ports:
       - "4567:4567"
     command: ruby ./app.rb  # remember to bind 0.0.0.0
+    #command: rails s -b "0.0.0.0"
 
   redis:
     image: redis

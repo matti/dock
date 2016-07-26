@@ -1,5 +1,5 @@
 FROM ruby:2.3.1-alpine
-ARG DOCK_BUNDLE_WITHOUT_GROUPS
+ARG DOCK_ENV=production
 
 RUN adduser -D app
 WORKDIR /home/app
@@ -13,14 +13,24 @@ ADD Gemfile* ./
 RUN chown app:app Gemfile && chown app:app Gemfile.lock | cat
 
 USER app
-RUN gem install bundler && \
-  bundle install --without ${DOCK_BUNDLE_WITHOUT_GROUPS:-"development test"}
+RUN if [ "$DOCK_ENV" == "production" ]; then \
+  echo "production bundle" && \
+  gem install bundler && \
+  bundle install --without "development test" \
+;else \
+  echo "development bundle" && \
+  gem install bundler && \
+  bundle install --without "production" \
+;fi
 
 USER root
 ADD . .
-RUN apk del build-dependencies && \
-  rm Apkfile && \
-  chown -R app:app *
+
+RUN if [ "$DOCK_ENV" == "production" ]; then \
+  apk del build-dependencies && \
+  rm Apkfile \
+;fi; \
+chown -R app:app *
 
 EXPOSE 4567
 
