@@ -25,4 +25,3 @@ RUN apk del build-dependencies && \
 EXPOSE 4567
 
 USER app
-CMD ./bin/heroku_boot
