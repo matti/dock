@@ -46,6 +46,10 @@ case $1 in
     dockerComposeRun console
   ;;
   "bundle")
+    if [ "$(docker images -q $DOCK_IMAGE)" == "" ]; then
+      echo "You need to run 'build' first."
+      exit 1
+    fi
     shift 1
     docker build --build-arg DOCK_ENV="$DOCK_ENV" --tag $DOCK_IMAGE .
     copyFileFromImage Gemfile.lock .
