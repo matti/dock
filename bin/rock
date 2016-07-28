@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [ -z "$ROCK_ENV" ]; then
   export ROCK_ENV=dev
 fi
