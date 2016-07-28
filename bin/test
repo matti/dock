@@ -22,4 +22,5 @@ end
 mv Apkfile.sinatra Apkfile
 
 rock bundle
+rock forward 4567
 rock run web

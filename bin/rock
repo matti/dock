@@ -20,6 +20,25 @@ function copyFileFromImage() {
 }
 
 case $1 in
+  "forward")
+  target_port=${2:-3000}
+
+  echo "forward 127.0.0.1:80 -> 127.0.0.1:$target_port (requires sudo)"
+  sudo -v
+
+  echo "rdr pass inet proto tcp from any to any port 80 -> 127.0.0.1 port $target_port" \
+  | sudo pfctl -ef - 2> /dev/null \
+  || true
+
+  forward_line=$(sudo pfctl -s nat 2> /dev/null | grep "127.0.0.1 port $target_port")
+
+  if [ "$forward_line" == "" ]; then
+    echo "failed."
+    exit 1
+  else
+    echo "ok."
+  fi
+  ;;
   "init")
     MY_DIR=$(dirname $(readlink $0))
     cp -i -r $MY_DIR/../templates/ .
@@ -63,16 +82,16 @@ case $1 in
   *)
     echo "Usage:"
     echo ""
-    echo "rock init           # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
-    echo "rock build          # Builds a production container without caches"
-    echo "rock bundle         # Builds a development container"
-    echo "rock run SERVICE    # Starts service SERVICE in foreground"
-    echo "rock logs           # Shows logs from other processes than the one started with run"
-    echo "rock stop           # Stops all services"
-    echo "rock console        # Runs service console (same as rock exec consolecmd)"
-    echo "rock exec CMD       # Runs CMD in the container"
-    echo "rock clean          # Removes the image (rock build ignores caches)"
-
+    echo "rock init                 # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
+    echo "rock build                # Builds a production container without caches"
+    echo "rock bundle               # Builds a development container"
+    echo "rock run SERVICE          # Starts service SERVICE in foreground"
+    echo "rock logs                 # Shows logs from other processes than the one started with run"
+    echo "rock stop                 # Stops all services"
+    echo "rock console              # Runs service console (same as rock exec consolecmd)"
+    echo "rock exec CMD             # Runs CMD in the container"
+    echo "rock clean                # Removes the image (rock build ignores caches)"
+    echo "rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT"
     exit 1
   ;;
 esac
