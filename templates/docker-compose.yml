@@ -1,10 +1,10 @@
 version: '2'
 services:
   default:
-    image: ${DOCK_IMAGE}
+    image: ${ROCK_IMAGE}
     volumes:
-      - .:${DOCK_PWD}
-    working_dir: ${DOCK_PWD}
+      - .:${ROCK_PWD}
+    working_dir: ${ROCK_PWD}
     env_file: .env
     environment:
       - RACK_ENV=development

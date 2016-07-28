@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+if [ -z "$ROCK_ENV" ]; then
+  export ROCK_ENV=dev
+fi
+
+export ROCK_PWD=$(pwd)
+export ROCK_IMAGE=$(basename $(pwd))
+
+function dockerComposeRun() {
+  docker-compose run --rm --service-ports $@
+}
+
+function copyFileFromImage() {
+  id=$(docker create $ROCK_IMAGE)
+  docker cp $id:/home/app/$1 $2
+  docker rm -v $id
+}
+
+case $1 in
+  "init")
+    MY_DIR=$(dirname $(readlink $0))
+    cp -i -r $MY_DIR/../templates/ .
+  ;;
+  "build")
+    docker build . --no-cache --tag $ROCK_IMAGE
+    copyFileFromImage Gemfile.lock .
+  ;;
+  "clean")
+    docker rmi $ROCK_IMAGE
+  ;;
+  "logs")
+    shift 1
+    docker-compose logs -f $@
+    echo "Reminder: this was the logs command, stop processes with: rock stop"
+    ;;
+  "run")
+    shift 1
+    dockerComposeRun $@
+  ;;
+  "stop")
+    docker-compose stop
+  ;;
+  "console")
+    shift 1
+    dockerComposeRun console
+  ;;
+  "bundle")
+    if [ "$(docker images -q $ROCK_IMAGE)" == "" ]; then
+      echo "You need to run 'build' first."
+      exit 1
+    fi
+    shift 1
+    docker build --build-arg ROCK_ENV="$ROCK_ENV" --tag $ROCK_IMAGE .
+    copyFileFromImage Gemfile.lock .
+  ;;
+  "exec")
+    shift 1
+    dockerComposeRun default $@
+  ;;
+  *)
+    echo "Usage:"
+    echo ""
+    echo "rock init           # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
+    echo "rock build          # Builds a production container without caches"
+    echo "rock bundle         # Builds a development container"
+    echo "rock run SERVICE    # Starts service SERVICE in foreground"
+    echo "rock logs           # Shows logs from other processes than the one started with run"
+    echo "rock stop           # Stops all services"
+    echo "rock console        # Runs service console (same as rock exec consolecmd)"
+    echo "rock exec CMD       # Runs CMD in the container"
+    echo "rock clean          # Removes the image (rock build ignores caches)"
+
+    exit 1
+  ;;
+esac
