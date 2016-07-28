@@ -9,6 +9,11 @@ fi
 export ROCK_PWD=$(pwd)
 export ROCK_IMAGE=$(basename $(pwd))
 
+function ensureDependencies() {
+  hash docker
+  hash docker-compose
+}
+
 function dockerComposeRun() {
   cmd="docker-compose run --rm --service-ports $@"
   debug $cmd
@@ -26,6 +31,9 @@ function debug() {
   [ -n "$ROCK_DEBUG" ] && echo $@
   true
 }
+
+ensureDependencies
+
 case $1 in
   "forward")
   target_port=${2:-3000}
