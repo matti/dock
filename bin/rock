@@ -52,21 +52,21 @@ case $1 in
       target_port=$(rock port)
     fi
 
-  echo "forward 127.0.0.1:80 -> 127.0.0.1:$target_port (requires sudo)"
-  sudo -v
+    echo "forward 127.0.0.1:80 -> 127.0.0.1:$target_port (requires sudo)"
+    sudo -v
 
-  echo "rdr pass inet proto tcp from any to any port 80 -> 127.0.0.1 port $target_port" \
-  | sudo pfctl -ef - 2> /dev/null \
-  || true
+    echo "rdr pass inet proto tcp from any to any port 80 -> 127.0.0.1 port $target_port" \
+    | sudo pfctl -ef - 2> /dev/null \
+    || true
 
-  forward_line=$(sudo pfctl -s nat 2> /dev/null | grep "127.0.0.1 port $target_port")
+    forward_line=$(sudo pfctl -s nat 2> /dev/null | grep "127.0.0.1 port $target_port")
 
-  if [ "$forward_line" == "" ]; then
-    echo "failed."
-    exit 1
-  else
-    echo "ok."
-  fi
+    if [ "$forward_line" == "" ]; then
+      echo "failed."
+      exit 1
+    else
+      echo "ok."
+    fi
   ;;
   "init")
     MY_DIR=$(dirname $(readlink $0))
