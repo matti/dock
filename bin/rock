@@ -10,7 +10,10 @@ export ROCK_PWD=$(pwd)
 export ROCK_IMAGE=$(basename $(pwd))
 
 function dockerComposeRun() {
-  docker-compose run --rm --service-ports $@
+  cmd="docker-compose run --rm --service-ports $@"
+  debug $cmd
+
+  $cmd
 }
 
 function copyFileFromImage() {
@@ -19,6 +22,10 @@ function copyFileFromImage() {
   docker rm -v $id
 }
 
+function debug() {
+  [ -n "$ROCK_DEBUG" ] && echo $@
+  true
+}
 case $1 in
   "forward")
   target_port=${2:-3000}
@@ -57,7 +64,9 @@ case $1 in
     ;;
   "run")
     shift 1
-    dockerComposeRun $@
+    service=${1:-web}
+    shift 1 || true
+    dockerComposeRun $service $@
   ;;
   "stop")
     docker-compose stop
@@ -85,7 +94,7 @@ case $1 in
     echo "rock init                 # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
     echo "rock build                # Builds a production container without caches"
     echo "rock bundle               # Builds a development container"
-    echo "rock run SERVICE          # Starts service SERVICE in foreground"
+    echo "rock run SERVICE=web      # Starts service SERVICE in foreground"
     echo "rock logs                 # Shows logs from other processes than the one started with run"
     echo "rock stop                 # Stops all services"
     echo "rock console              # Runs service console (same as rock exec consolecmd)"
