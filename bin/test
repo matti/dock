@@ -5,7 +5,7 @@ sudo -v
 rm -rf scratch
 mkdir scratch
 cd scratch
-rock init
+rock init sinatra
 
 echo "
 gem 'sinatra'
@@ -19,8 +19,6 @@ get '/' do
   'works'
 end
 " > app.rb
-
-mv Apkfile.sinatra Apkfile
 
 rock bundle
 rock forward 4567

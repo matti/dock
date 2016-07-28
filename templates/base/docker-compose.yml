@@ -1,0 +1,8 @@
+version: '2'
+services:
+  default:
+    image: ${ROCK_IMAGE}
+    volumes:
+      - .:${ROCK_PWD}
+    working_dir: ${ROCK_PWD}
+    env_file: .env
