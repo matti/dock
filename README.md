@@ -19,5 +19,5 @@ rock stop                 # Stops all services
 rock console              # Runs service console (same as rock exec consolecmd)
 rock exec CMD             # Runs CMD in the container
 rock clean                # Removes the image (rock build ignores caches)
-rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT
+rock forward PORT=web     # Forwards 127.0.0.1:80 to 127.0.0.1:PORT (uses service web as the default)
 ```

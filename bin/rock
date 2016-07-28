@@ -47,7 +47,10 @@ case $1 in
     echo $port | cut -d "/" -f 1
   ;;
   "forward")
-  target_port=${2:-3000}
+    target_port=$2
+    if [ -z $target_port ]; then
+      target_port=$(rock port)
+    fi
 
   echo "forward 127.0.0.1:80 -> 127.0.0.1:$target_port (requires sudo)"
   sudo -v
