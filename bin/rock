@@ -35,6 +35,17 @@ function debug() {
 ensureDependencies
 
 case $1 in
+  "port")
+    service=${2:-web}
+
+    id=$(docker-compose run -d --service-ports $service)
+    port=$(docker port $id)
+    docker-compose stop
+    docker stop $id > /dev/null
+    docker rm $id > /dev/null
+
+    echo $port | cut -d "/" -f 1
+  ;;
   "forward")
   target_port=${2:-3000}
 
@@ -109,6 +120,7 @@ case $1 in
     echo "rock exec CMD             # Runs CMD in the container"
     echo "rock clean                # Removes the image (rock build ignores caches)"
     echo "rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT"
+    echo "rock port SERVICE=web     # Get the port of SERVICE"
     exit 1
   ;;
 esac
