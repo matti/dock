@@ -1,8 +1,8 @@
 FROM ruby:2.3.1-alpine
 ARG ROCK_ENV=production
 
-RUN adduser -D app
-WORKDIR /home/app
+RUN adduser -D app; mkdir /app
+WORKDIR /app
 
 ADD Apkfile .
 RUN apk update && source Apkfile
@@ -10,7 +10,8 @@ RUN apk update && source Apkfile
 ADD Gemfile .
 ADD Gemfile* ./
 
-RUN chown app:app Gemfile && chown app:app Gemfile.lock | cat
+#RUN chown app:app Gemfile && chown app:app Gemfile.lock | cat
+RUN chown -R app:app /app
 
 USER app
 RUN if [ "$ROCK_ENV" == "production" ]; then \

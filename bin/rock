@@ -14,13 +14,37 @@ function ensureDependencies() {
   hash docker-compose
 }
 
+function ensureInitRun() {
+  if [[ "$1" =~ ^(^$|init|help|create)$ ]]; then
+    return
+  fi
+
+  if [ -e Dockerfile ]; then
+    return
+  fi
+
+  echo "You need to run 'rock init' first."
+  exit 1
+}
+
+function ensureImage() {
+  if [[ "$1" =~ ^(^$|help|init|build|create)$ ]]; then
+    return
+  fi
+
+  if [ "$(docker images -q $ROCK_IMAGE)" == "" ]; then
+    echo "You need to run 'rock build' first."
+    exit 1
+  fi
+}
+
 function ensureFunctionalProject() {
-  if ! [[ "$1" =~ ^(run|exec)$ ]]; then
+  if [[ "$1" =~ ^(^$|help|init|create)$ ]]; then
     return
   fi
 
   if [ -e config/database.yml ]; then
-    echo "config/database.yml will override ENV['DATABASE_URL'], rename it."
+    echo "config/database.yml will override ENV['DATABASE_URL'], rename or delete it."
     exit 1
   fi
 }
@@ -34,7 +58,7 @@ function dockerComposeRun() {
 
 function copyFileFromImage() {
   id=$(docker create $ROCK_IMAGE)
-  docker cp $id:/home/app/$1 $2
+  docker cp $id:/app/$1 $2
   docker rm -v $id
 }
 
@@ -44,7 +68,9 @@ function debug() {
 }
 
 ensureDependencies
-ensureFunctionalProject $2
+ensureInitRun $1
+ensureImage $1
+ensureFunctionalProject $1
 
 case $1 in
   "port")
@@ -58,6 +84,22 @@ case $1 in
 
     echo $port | cut -d "/" -f 1
   ;;
+  "create")
+    template_name=$2
+    project_name=$3
+
+
+    if [ -z $project_name ] || [ -z $template_name ]; then
+      echo "Usage: rock create PROJECT TEMPLATE"
+      exit 1
+    fi
+
+    mkdir $project_name || true
+    cd $project_name
+    rock init $template_name
+
+    printf "\n\n..done. next up: cd $project_name && rock build\n"
+    ;;
   "forward")
     target_port=$2
 
@@ -111,12 +153,11 @@ case $1 in
 $contents" >> $file
       done
     fi
-
-    echo ""
-    echo "..done. next up: rock bundle && rock forward && rock run"
   ;;
   "build")
-    docker build . --no-cache --tag $ROCK_IMAGE
+    current_rock_env=${2:-$ROCK_ENV}
+
+    docker build --build-arg ROCK_ENV="$current_rock_env" --tag $ROCK_IMAGE .
     copyFileFromImage Gemfile.lock .
   ;;
   "clean")
@@ -128,11 +169,6 @@ $contents" >> $file
     echo "Reminder: this was the logs command, stop processes with: rock stop"
     ;;
   "start"|"s")
-    if [ "$(docker images -q $ROCK_IMAGE)" == "" ]; then
-      echo "You need to run 'bundle' or 'build' first."
-      exit 1
-    fi
-
     shift 1
     service=${1:-web}
     shift 1 || true
@@ -150,7 +186,22 @@ $contents" >> $file
     shift 1
     dockerComposeRun default bash
   ;;
-  "bundle")
+  "diff")
+    rsync_output=$(docker run --rm -v $(pwd):/rock $ROCK_IMAGE rsync --exclude-from=.gitignore --dry-run --delete -acv -i /app/ /rock/)
+    rsync_filtered=$(printf "$rsync_output" | grep -v "\s\.\/$") # remove ./
+
+    files_to_add=$(printf "$rsync_filtered" | grep "^*deleting\s" | awk '{print $2}')
+    files_to_modify=$(printf "$rsync_filtered" | grep "^>" | awk '{print $2}')
+
+    for file in $files_to_add; do
+      printf "A $file\n"
+    done
+
+    for file in $files_to_modify; do
+      printf "M $file\n"
+    done
+  ;;
+  "rockbundle")
     shift 1
 
     docker build --build-arg ROCK_ENV="$ROCK_ENV" --tag $ROCK_IMAGE .
@@ -161,8 +212,16 @@ $contents" >> $file
     service=$1
     shift 1
     dockerComposeRun $service $@
+
+    changes=$(rock diff)
+    if [ -n "$changes" ]; then
+      printf "\n\nUpdating docker image...\n"
+      rock build
+      #(rock build &> .rock_building && rm .rock_building) &
+    fi
   ;;
-  *)echo "
+  "help"|"")
+  echo "
   .______  ._______  ._______ .____/\\
   : __   \ : .___  \ :_.  ___\:   /  \\
   |  \____|| :   |  ||  : |/\ |.  ___/
@@ -173,20 +232,24 @@ $contents" >> $file
 "
     echo "Usage:"
     echo ""
+    echo "rock create TEMPLATE NAME # Creates a new folder and initializes that with a template"
     echo "rock init                 # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
-    echo "rock bundle               # Builds a development container"
+    echo "rock build ROCK_ENV=dev   # Builds a production container without caches"
     echo "rock start SERVICE=web    # Starts service SERVICE in foreground with dependencies"
     echo "rock logs                 # Shows logs from other processes than the one started with run"
     echo "rock stop                 # Stops all services"
-    echo "rock console              # Runs service console (same as rock exec consolecmd)"
-    echo "rock shell                # Starts shell in the container"
+    echo "rock CMD                  # Runs CMD in the default service"
     echo ""
     echo "Extended usage:"
+    echo "rock compare              # Compares the working directory with the image last built"
     echo "rock exec CMD             # Runs CMD in the container"
-    echo "rock build                # Builds a production container without caches"
     echo "rock clean                # Removes the image (rock build ignores caches)"
     echo "rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT"
     echo "rock port SERVICE=web     # Get the port of SERVICE"
+    echo "rock help                 # Usage information"
     exit 1
+  ;;
+  *)
+    rock exec default $@
   ;;
 esac

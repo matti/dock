@@ -11,6 +11,7 @@
       - "3000:3000"
     depends_on:
       - postgres
+      - redis
     command: bundle exec rails s -b "0.0.0.0"
 
   redis:
