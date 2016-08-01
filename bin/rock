@@ -46,7 +46,17 @@ function dockerComposeRun() {
   cmd="docker-compose run --rm --service-ports $@"
   debug $cmd
 
+  set +e
   $cmd
+  if [ "$?" != 0 ]; then
+    created_containers=$(docker ps -a | grep $ROCK_IMAGE | grep Created | grep default_run)
+    IFS=$'\n'
+    for created_container_line in $created_containers; do
+      container_id=$(echo $created_container_line | awk '{print $1}')
+      printf "Removing: $(docker rm $container_id)\n"
+    done
+  fi
+  set -e
 }
 
 function copyFileFromImage() {
