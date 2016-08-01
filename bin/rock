@@ -73,6 +73,46 @@ function debug() {
 ensureDependencies
 
 case $1 in
+  "networks")
+    networks=$(docker network ls)
+    printf "$networks"
+  ;;
+  "containers")
+    containers=$(docker ps -a)
+    printf "$containers"
+  ;;
+  "images")
+    images=$(docker images)
+
+    case $2 in
+      "clean")
+        image_lines=$(printf "$images" | tail -n +2)
+        IFS=$'\n'
+        for image_line in $image_lines; do
+          image_name=$(echo $image_line | awk '{print $1}')
+          image_id=$(echo $image_line | awk '{print $3}')
+          if [[ "$image_name" =~ "$3" ]]; then
+            echo "'$3' found in $image_name"
+            set +e
+            docker rmi -f $image_id
+            set -e
+          fi
+
+        done
+      ;;
+      "rm")
+        set +e
+        docker rmi -f $3
+        set -e
+      ;;
+      *)
+        printf "$images" | grep "$2"
+      ;;
+      "")
+        printf "$images"
+      ;;
+    esac
+  ;;
   "port")
     service=${2:-web}
 
