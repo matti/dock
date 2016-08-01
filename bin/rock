@@ -15,6 +15,33 @@ function ensureDependencies() {
   hash docker-compose
 }
 
+function ensureInitRun() {
+  if [ -e Dockerfile ]; then
+    return
+  fi
+
+  echo "You need to run 'rock init' first."
+  exit 1
+}
+
+function ensureImage() {
+  if [ "$(docker images -q $ROCK_IMAGE)" == "" ]; then
+    echo "You need to run 'rock build' first."
+    exit 1
+  fi
+}
+
+function ensureFunctionalProject() {
+  if [[ "$1" =~ ^(^$|help|init|create)$ ]]; then
+    return
+  fi
+
+  if [ -e config/database.yml ]; then
+    echo "config/database.yml will override ENV['DATABASE_URL'], rename or delete it."
+    exit 1
+  fi
+}
+
 function dockerComposeRun() {
   cmd="docker-compose run --rm --service-ports $@"
   debug $cmd
