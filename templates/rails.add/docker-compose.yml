@@ -1,0 +1,21 @@
+  console:
+    extends: default
+    depends_on:
+      - redis
+      - postgres
+    command: bundle exec rails c
+
+  web:
+    extends: default
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    command: bundle exec rails s -b "0.0.0.0"
+
+  redis:
+    image: redis
+
+  postgres:
+    image: postgres:9.4

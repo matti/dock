@@ -61,7 +61,7 @@ function dockerComposeRun() {
 
 function copyFileFromImage() {
   id=$(docker create $ROCK_IMAGE)
-  docker cp $id:/home/app/$1 $2
+  docker cp $id:/app/$1 $2
   docker rm -v $id
 }
 
@@ -84,8 +84,25 @@ case $1 in
 
     echo $port | cut -d "/" -f 1
   ;;
+  "create")
+    template_name=$2
+    project_name=$3
+
+
+    if [ -z $project_name ] || [ -z $template_name ]; then
+      echo "Usage: rock create PROJECT TEMPLATE"
+      exit 1
+    fi
+
+    mkdir $project_name || true
+    cd $project_name
+    rock init $template_name
+
+    printf "\n\n..done. next up: cd $project_name && rock build\n"
+    ;;
   "forward")
     target_port=$2
+
     if [ -z $target_port ]; then
       target_port=$(rock port)
     fi
