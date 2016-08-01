@@ -7,7 +7,8 @@ if [ -z "$ROCK_ENV" ]; then
 fi
 
 export ROCK_PWD=$(pwd)
-export ROCK_IMAGE=$(basename $(pwd))
+export ROCK_IMAGE="rock-$(basename $(pwd))"
+export COMPOSE_PROJECT_NAME="rock$(basename $(pwd))"
 
 function ensureDependencies() {
   hash docker
