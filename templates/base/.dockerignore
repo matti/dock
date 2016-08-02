@@ -1,1 +1,8 @@
+tmp/
+log/
+spec/
+
 .byebug_history
+.git
+.gitignore
+.dockerignore

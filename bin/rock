@@ -279,7 +279,7 @@ $contents" >> $file
   "diff")
     ensureImage
 
-    rsync_output=$(docker run --rm -v $(pwd):/rock $ROCK_IMAGE rsync --exclude-from=.gitignore --exclude-from=.dockerignore --dry-run --delete -acv -i /app/ /rock/)
+    rsync_output=$(docker run --rm -v $(pwd):/rock -w /rock $ROCK_IMAGE rsync --exclude-from=.gitignore --exclude-from=.dockerignore --dry-run --delete -acv -i /app/ /rock/)
     rsync_filtered=$(printf "$rsync_output" | grep -v "\s\.\/$") # remove ./
 
     files_to_add=$(printf "$rsync_filtered" | grep "^*deleting\s" | awk '{print $2}')
