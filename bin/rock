@@ -42,7 +42,19 @@ function ensureFunctionalProject() {
 }
 
 function dockerComposeRun() {
-  cmd="docker-compose run --rm --service-ports $@"
+  if [ -e ".env" ]; then
+    env_lines=$(cat .env)
+    #echo $env_lines
+    additional_envs=""
+    old_ifs=$IFS
+    IFS=$'\n'
+    for line in $env_lines; do
+      additional_envs+="-e $line "
+    done
+    IFS=$old_ifs
+  fi
+
+  cmd="docker-compose run $additional_envs --rm --service-ports $@"
   debug $cmd
 
   set +e
