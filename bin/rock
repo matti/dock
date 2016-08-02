@@ -302,17 +302,6 @@ $contents" >> $file
     shift 1
 
     dockerComposeRun $service $@
-
-    changes=$(rock diff)
-
-    if [[ "$changes" =~ (Gemfile) ]]; then
-      printf "\n\nGemfile/Gemfile.lock differs from the image, build now? (Y/n): "
-      read input
-
-      if [[ "$input" =~ ^(^$|yY)$ ]]; then
-        rock build
-      fi
-    fi
   ;;
   "help"|"usage"|"")
   echo "
