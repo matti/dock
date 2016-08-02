@@ -1,25 +1,41 @@
 #!/usr/bin/env bash
 
+set -v
+set -e
+
 sudo -v
 
-rm -rf scratch
+rm -rf scratch || true
 mkdir scratch
 cd scratch
-rock init sinatra
 
-echo "
-gem 'sinatra'
-" >> Gemfile
 
-echo "
-require 'sinatra'
-set :bind, '0.0.0.0'
+rock create rails railstest
+cd railstest
+rock clean
+rock build
+rock start # to start databases...
+rock rails new . -f --database postgresql
+rm config/database.yml
+rock rails g scaffold post title:string
+rock rake db:migrate
+rock forward 3000
+(sleep 5; open http://localhost/posts) &
+rock start
+rock clean
+cd ..
 
-get '/' do
-  'works'
-end
-" > app.rb
 
+sudo -v
+
+
+rock create sinatra sinatratest
+cd sinatratest
+rock clean
+rock build
 rock bundle
 rock forward 4567
-rock run web
+(sleep 2; open http://localhost) &
+rock start
+rock clean
+cd ..
