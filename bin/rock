@@ -44,7 +44,6 @@ function ensureFunctionalProject() {
 function dockerComposeRun() {
   if [ -e ".env" ]; then
     env_lines=$(cat .env)
-    #echo $env_lines
     additional_envs=""
     old_ifs=$IFS
     IFS=$'\n'
