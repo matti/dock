@@ -114,6 +114,8 @@ case $1 in
     esac
   ;;
   "port")
+    ensureImage
+
     service=${2:-web}
 
     id=$(docker-compose run -d --service-ports $service)
@@ -164,61 +166,203 @@ case $1 in
     fi
   ;;
   "init")
-    MY_DIR=$(dirname $(readlink $0))
-    cp -i -r $MY_DIR/../templates/ .
+    template=$2
+
+    if ! [[ "$template" =~ ^(ruby|sinatra|rails)$ ]]; then
+      echo "Usage: rock init {ruby, sinatra, rails}"
+      exit 1
+    fi
+
+    my_path=$(dirname $(readlink $0))
+    template_root_path=$my_path/../templates
+    template_path=$template_root_path/$template
+    template_add_path=$template_path.add
+
+    echo "Creating files .."
+    cp -i -r $template_root_path/base/ . || true
+    [ -d $template_path ] && cp -i -r $template_path/ . || true
+
+    if [ -d $template_add_path ]; then
+      files=$(ls -a $template_add_path)
+      for file in $files; do
+        [ "$file" == "." ] && continue   #TODO: betterpattern?
+        [ "$file" == ".." ] && continue
+
+        echo "Adding content to $file .."
+        contents=$(cat $template_add_path/$file)
+
+        echo "
+$contents" >> $file
+      done
+    fi
   ;;
   "build")
-    docker build . --no-cache --tag $ROCK_IMAGE
+    ensureInitRun
+    ensureFunctionalProject
+
+    current_rock_env=${2:-$ROCK_ENV}
+
+    docker build --build-arg ROCK_ENV="$current_rock_env" --tag $ROCK_IMAGE .
     copyFileFromImage Gemfile.lock .
   ;;
   "clean")
-    docker rmi $ROCK_IMAGE
+    echo "Stopping.."
+    rock stop
+    echo "Removing image $ROCK_IMAGE.."
+    rock images rm $ROCK_IMAGE
+
+    echo "Removing all project containers.."
+    set +e
+    containers=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME\_")
+    set -e
+    IFS=$'\n'
+    for container_line in $containers; do
+      container_id=$(echo $container_line | awk '{print $1}')
+      docker rm $container_id
+    done
+
+    echo "Removing all project networks.."
+    set +e
+    networks=$(docker network ls | grep "$COMPOSE_PROJECT_NAME\_")
+    set -e
+
+    IFS=$'\n'
+    for network_line in $networks; do
+      network_id=$(echo $network_line | awk '{print $1}')
+      docker network rm $network_id
+    done
+
+    echo "clean."
   ;;
   "logs")
+    ensureImage
+
     shift 1
     docker-compose logs -f $@
     echo "Reminder: this was the logs command, stop processes with: rock stop"
     ;;
-  "run")
+  "start"|"s")
+    ensureImage
+    ensureFunctionalProject
+
     shift 1
     service=${1:-web}
     shift 1 || true
+
     dockerComposeRun $service $@
   ;;
   "stop")
-    docker-compose stop
+    set +e
+    containers=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME\_" | grep -v "Exited (0)")
+    set -e
+
+    if [ "$containers" == "" ]; then
+      echo "Everything stopped."
+    else
+      echo "Stopping harder.."
+
+      IFS=$'\n'
+      for container_line in $containers; do
+        container_id=$(echo $container_line | awk '{print $1}')
+        docker stop $container_id > /dev/null
+        printf "Stopped\n$container_line\n"
+      done
+    fi
   ;;
-  "console")
+  "console"|"c")
+    ensureImage
+    ensureFunctionalProject
+
     shift 1
     dockerComposeRun console
   ;;
-  "bundle")
-    if [ "$(docker images -q $ROCK_IMAGE)" == "" ]; then
-      echo "You need to run 'build' first."
-      exit 1
-    fi
+  "shell")
+    ensureImage
+    ensureFunctionalProject
+
     shift 1
-    docker build --build-arg ROCK_ENV="$ROCK_ENV" --tag $ROCK_IMAGE .
-    copyFileFromImage Gemfile.lock .
+    dockerComposeRun default bash
+  ;;
+  "diff")
+    ensureImage
+
+    rsync_output=$(docker run --rm -v $(pwd):/rock $ROCK_IMAGE rsync --exclude-from=.gitignore --dry-run --delete -acv -i /app/ /rock/)
+    rsync_filtered=$(printf "$rsync_output" | grep -v "\s\.\/$") # remove ./
+
+    files_to_add=$(printf "$rsync_filtered" | grep "^*deleting\s" | awk '{print $2}')
+    files_to_modify=$(printf "$rsync_filtered" | grep "^>" | awk '{print $2}')
+
+    for file in $files_to_add; do
+      printf "A $file\n"
+    done
+
+    for file in $files_to_modify; do
+      printf "M $file\n"
+    done
   ;;
   "exec")
+    ensureImage
+    ensureFunctionalProject
+
     shift 1
-    dockerComposeRun default $@
+    service=$1
+    shift 1
+
+    dockerComposeRun $service $@
+
+    changes=$(rock diff)
+
+    if [[ "$changes" =~ (Gemfile) ]]; then
+      printf "\n\nGemfile/Gemfile.lock differs from the image, build now? (Y/n): "
+      read input
+
+      if [[ "$input" =~ ^(^$|yY)$ ]]; then
+        rock build
+      fi
+    fi
   ;;
-  *)
+  "help"|"usage"|"")
+  echo "
+  .______  ._______  ._______ .____/\\
+  : __   \ : .___  \ :_.  ___\:   /  \\
+  |  \____|| :   |  ||  : |/\ |.  ___/
+  |   :  \ |     :  ||    /  \|     \\
+  |   |___\ \_. ___/ |. _____/|      \\
+  |___|       :/      :/      |___\  /
+              :       :            \/
+"
     echo "Usage:"
     echo ""
+    echo "rock create TEMPLATE NAME # Creates a new folder and initializes that with a template"
     echo "rock init                 # Creates .env, Apkfile, docker-compose.yml and Dockerfile"
-    echo "rock build                # Builds a production container without caches"
-    echo "rock bundle               # Builds a development container"
-    echo "rock run SERVICE=web      # Starts service SERVICE in foreground"
+    echo "rock build ROCK_ENV=dev   # Builds a production container without caches"
+    echo "rock start SERVICE=web    # Starts service SERVICE in foreground with dependencies"
     echo "rock logs                 # Shows logs from other processes than the one started with run"
     echo "rock stop                 # Stops all services"
-    echo "rock console              # Runs service console (same as rock exec consolecmd)"
+    echo "rock console              # Runs service 'console'"
+    echo "rock shell                # Starts shell in the image"
+    echo "rock CMD                  # Runs CMD in the default service"
+    echo ""
+    echo "Docker shortcuts:"
+    echo ""
+    echo "rock images               # List all images"
+    echo "rock images clean STARTS  # Delete images that starts with STARTS"
+    echo "rock images rm NAME/ID    # Delete image by name or id"
+    echo "rock networks             # List all networks"
+    echo "rock containers           # List all containers"
+    echo ""
+    echo "Extended usage:"
+    echo "rock compare              # Compares the working directory with the image last built"
     echo "rock exec CMD             # Runs CMD in the container"
-    echo "rock clean                # Removes the image (rock build ignores caches)"
+    echo "rock clean                # Removes everything"
     echo "rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT"
     echo "rock port SERVICE=web     # Get the port of SERVICE"
+
+    echo "rock help                 # Usage information"
     exit 1
+  ;;
+  *)
+    ensureImage
+    rock exec default $@
   ;;
 esac
