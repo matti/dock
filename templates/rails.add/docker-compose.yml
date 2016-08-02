@@ -12,3 +12,6 @@
 
   postgres:
     image: postgres:9.4
+
+  mongo:
+    image: mongo:3.2
