@@ -269,13 +269,6 @@ $contents" >> $file
       done
     fi
   ;;
-  "console"|"c")
-    ensureImage
-    ensureFunctionalProject
-
-    shift 1
-    dockerComposeRun console
-  ;;
   "shell")
     ensureImage
     ensureFunctionalProject
@@ -339,7 +332,6 @@ $contents" >> $file
     echo "rock start SERVICE=web    # Starts service SERVICE in foreground with dependencies"
     echo "rock logs                 # Shows logs from other processes than the one started with run"
     echo "rock stop                 # Stops all services"
-    echo "rock console              # Runs service 'console'"
     echo "rock shell                # Starts shell in the image"
     echo "rock CMD                  # Runs CMD in the default service"
     echo ""
@@ -363,6 +355,6 @@ $contents" >> $file
   ;;
   *)
     ensureImage
-    rock exec default $@
+    rock exec web $@
   ;;
 esac
