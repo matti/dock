@@ -199,9 +199,10 @@ $contents" >> $file
     ensureInitRun
     ensureFunctionalProject
 
-    current_rock_env=${2:-$ROCK_ENV}
+    shift 1
+    opts=${@:-}
 
-    docker build --build-arg ROCK_ENV="$current_rock_env" --tag $ROCK_IMAGE .
+    docker build $opts --build-arg ROCK_ENV="$ROCK_ENV" --tag $ROCK_IMAGE .
     copyFileFromImage Gemfile.lock .
   ;;
   "clean")
