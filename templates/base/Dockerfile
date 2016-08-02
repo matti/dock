@@ -10,7 +10,6 @@ RUN apk update && source Apkfile
 ADD Gemfile .
 ADD Gemfile* ./
 
-#RUN chown app:app Gemfile && chown app:app Gemfile.lock | cat
 RUN chown -R app:app /app
 
 USER app

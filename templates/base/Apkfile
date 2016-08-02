@@ -1,2 +1,2 @@
 apk add \
-  tzdata bash rsync
+  tzdata bash rsync git
