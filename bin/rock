@@ -289,13 +289,13 @@ $contents" >> $file
     if [ "$containers" == "" ]; then
       echo "Everything stopped."
     else
-      echo "Stopping harder.."
+      echo "Stopping ..."
 
       IFS=$'\n'
       for container_line in $containers; do
         container_id=$(echo $container_line | awk '{print $1}')
         docker stop $container_id > /dev/null
-        printf "Stopped\n$container_line\n"
+        printf "Stopped:\n$container_line\n"
       done
     fi
   ;;
