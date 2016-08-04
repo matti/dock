@@ -43,6 +43,38 @@ function ensureFunctionalProject() {
   fi
 }
 
+#TODO: dup
+function dockerComposeRunWithoutPorts() {
+  if [ -e ".env" ]; then
+    env_lines=$(cat .env)
+    additional_envs=""
+    old_ifs=$IFS
+    IFS=$'\n'
+    for line in $env_lines; do
+      additional_envs+="-e $line "
+    done
+    IFS=$old_ifs
+  fi
+
+  service=$1
+  shift 1
+
+  cmd="docker-compose run $additional_envs --rm $service $@"
+  debug $cmd
+
+  set +e
+  $cmd
+  if [ "$?" != 0 ]; then
+    created_containers=$(docker ps -a | grep $ROCK_IMAGE | grep Created | grep default_run)
+    IFS=$'\n'
+    for created_container_line in $created_containers; do
+      container_id=$(echo $created_container_line | awk '{print $1}')
+      printf "Removing: $(docker rm $container_id)\n"
+    done
+  fi
+  set -e
+}
+
 function dockerComposeRun() {
   if [ -e ".env" ]; then
     env_lines=$(cat .env)
@@ -55,7 +87,10 @@ function dockerComposeRun() {
     IFS=$old_ifs
   fi
 
-  cmd="docker-compose run $additional_envs --rm --service-ports $@"
+  service=$1
+  shift 1
+
+  cmd="docker-compose run $additional_envs --rm --service-ports $service $@"
   debug $cmd
 
   set +e
@@ -345,7 +380,7 @@ $contents" >> $file
     service=$1
     shift 1
 
-    dockerComposeRun $service $@
+    dockerComposeRunWithoutPorts $service $@
   ;;
   "help"|"usage"|"")
   echo "
