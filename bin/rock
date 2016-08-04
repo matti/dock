@@ -256,7 +256,15 @@ $contents" >> $file
     ensureImage
 
     shift 1
-    docker-compose logs -f $@
+    while true; do
+      docker-compose logs -f $@
+      if [ "$?" == 0 ]; then
+        echo "docker-compose logs died, restarting.."
+        sleep 0.5
+      else
+        break
+      fi
+    done
     echo "Reminder: this was the logs command, stop processes with: rock stop"
     ;;
   "start"|"s")
