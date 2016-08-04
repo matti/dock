@@ -82,6 +82,11 @@ function debug() {
   true
 }
 
+debug "ROCK_PWD: $ROCK_PWD"
+debug "ROCK_IMAGE: $ROCK_IMAGE"
+debug "COMPOSE_PROJECT_NAME: $COMPOSE_PROJECT_NAME"
+debug "--------------------------------------------------------------------"
+
 ensureDependencies
 
 case $1 in
