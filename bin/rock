@@ -277,9 +277,13 @@ $contents" >> $file
 
     dockerComposeRun $service $@
   ;;
+  "restart")
+    shift 1
+    docker-compose restart $@
+  ;;
   "stop")
     set +e
-    containers=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME\_" | grep -v "Exited (0)")
+    containers=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME\_" | grep -v "Exited (")
     set -e
 
     if [ "$containers" == "" ]; then
