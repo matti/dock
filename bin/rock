@@ -299,6 +299,20 @@ $contents" >> $file
       done
     fi
   ;;
+  "kill")
+    rock stop
+    set +e
+    containers=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME\_")
+    set -e
+
+    IFS=$'\n'
+    for container_line in $containers; do
+      container_id=$(echo $container_line | awk '{print $1}')
+      docker rm $container_id
+      printf "Killed:\n$container_line\n"
+    done
+    echo "Everything killed."
+  ;;
   "shell")
     ensureImage
     ensureFunctionalProject
