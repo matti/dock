@@ -127,7 +127,15 @@ ensureDependencies
 case $1 in
   "networks")
     networks=$(docker network ls)
-    printf "$networks"
+
+    case $2 in
+      "rm")
+        echo "$networks" | tail -n +2 | awk '{print $1}' | xargs docker network rm
+      ;;
+      *)
+        echo "$networks"
+      ;;
+    esac
   ;;
   "containers")
     containers=$(docker ps -a)
@@ -453,6 +461,7 @@ $contents" >> $file
     echo "rock images clean STARTS  # Delete images that starts with STARTS"
     echo "rock images rm NAME/ID    # Delete image by name or id"
     echo "rock networks             # List all networks"
+    echo "rock networks rm          # Delete all networks"
     echo "rock containers           # List all containers"
     echo ""
     echo "Extended usage:"
