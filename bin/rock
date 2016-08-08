@@ -190,7 +190,7 @@ case $1 in
 
 
     if [ -z $project_name ] || [ -z $template_name ]; then
-      echo "Usage: rock create PROJECT TEMPLATE"
+      echo "Usage: rock create TEMPLATE PROJECT"
       exit 1
     fi
 
