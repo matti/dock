@@ -59,7 +59,7 @@ function dockerComposeRunWithoutPorts() {
   service=$1
   shift 1
 
-  cmd="docker-compose run $additional_envs --rm $service $@"
+  cmd="docker-compose run $additional_envs $service $@"
   debug $cmd
 
   set +e
@@ -177,6 +177,11 @@ case $1 in
     docker rm $id > /dev/null
 
     echo $port | cut -d "/" -f 1
+  ;;
+  "commit")
+    last_container_id=$(docker ps -a | grep "$COMPOSE_PROJECT_NAME"_web_run_ | head -n 1 | awk '{print $1}')
+    docker commit $last_container_id $ROCK_IMAGE >/dev/null
+    echo $ROCK_IMAGE updated.
   ;;
   "update")
     rock_path=$(readlink $0)
@@ -413,6 +418,8 @@ $contents" >> $file
     shift 1
 
     dockerComposeRunWithoutPorts $service $@
+
+    docker ps -a | grep "$COMPOSE_PROJECT_NAME"_web_run_ | tail -n +2 | awk '{print $1}' | xargs docker rm >/dev/null
   ;;
   "help"|"usage"|"")
   echo "
@@ -431,6 +438,7 @@ $contents" >> $file
     echo ""
     echo "Basic operation:"
     echo "rock build ROCK_ENV=dev   # Builds a production container without caches"
+    echo "rock commit               # Commits the last run to the image."
     echo "rock start SERVICE=web    # Starts service SERVICE in foreground with dependencies"
     echo "rock logs                 # Shows logs from other processes than the one started with run"
     echo "rock stop                 # Stops all services"
