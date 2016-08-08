@@ -178,6 +178,12 @@ case $1 in
 
     echo $port | cut -d "/" -f 1
   ;;
+  "update")
+    rock_path=$(readlink $0)
+    rock_base_path="$(cd "$( dirname "$rock_path" )"/.. && pwd )"
+    cd "$rock_base_path"
+    git pull
+    ;;
   "create")
     template_name=$2
     project_name=$3
