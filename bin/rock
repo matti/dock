@@ -139,7 +139,43 @@ case $1 in
   ;;
   "containers")
     containers=$(docker ps -a)
-    printf "$containers"
+    case $2 in
+      "rm")
+        case $3 in
+          *=*)
+            key=$(echo $3 | cut -d "=" -f 1)
+            value=$(echo $3 | cut -d "=" -f 2)
+
+            container_ids=$(docker ps -a -f $key=$value --format "{{.ID}}")
+
+            echo "Stopping.."
+            echo "$container_ids" | xargs docker stop
+            echo "Removing.."
+            echo "$container_ids" | xargs docker rm
+          ;;
+          *)
+            container_lines=$(printf "$containers" | tail -n +2)
+            IFS=$'\n'
+            for container_line in $container_lines; do
+              container_id=$(echo $container_line | awk '{print $1}')
+              container_image_name=$(echo $container_line | awk '{print $2}')
+              if [[ "$container_image_name" =~ "$4" ]]; then
+                echo "'$4' found in $container_image_name"
+                set +e
+                docker rm $container_id
+                set -e
+              fi
+            done
+          ;;
+        esac
+      ;;
+      "stop")
+        docker ps -f status=running --format "{{.ID}}" | xargs docker stop
+      ;;
+      *)
+        printf "$containers"
+      ;;
+    esac
   ;;
   "images")
     images=$(docker images)
@@ -463,6 +499,7 @@ $contents" >> $file
     echo "rock networks             # List all networks"
     echo "rock networks rm          # Delete all networks"
     echo "rock containers           # List all containers"
+    echo "rock containers rm K=V    # Delete all containers with field=value"
     echo ""
     echo "Extended usage:"
     echo "rock compare              # Compares the working directory with the image last built"
