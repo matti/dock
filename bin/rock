@@ -254,6 +254,32 @@ $contents" >> $file
       done
     fi
   ;;
+  "repair")
+    docker_path=$(mdfind "kMDItemCFBundleIdentifier == 'com.docker.docker'" | head -n 1)
+
+    echo "Shutting down Docker"
+    if killall Docker; then
+      printf "waiting"
+      until [ "$(ps ax | grep [D]ocker.app/Contents/MacOS/com.docker.osx.hyperkit.linux)" == "" ]; do
+        printf "."
+        sleep 0.5
+      done
+      echo ""
+    fi
+
+    echo "Check & repair the image:"
+    $docker_path/Contents/MacOS/qemu-img check -r all "$HOME/Library/Containers/com.docker.docker/Data/com.docker.driver.amd64-linux/Docker.qcow2"
+
+    printf "\nStarting Docker again"
+    open -b com.docker.docker
+
+    until [ "$(docker ps &> /dev/null; echo $?)" == "0" ]; do
+      printf "."
+      sleep 0.5
+    done
+
+    printf "done.\n"
+  ;;
   "build")
     ensureInitRun
     ensureFunctionalProject
@@ -427,7 +453,7 @@ $contents" >> $file
     echo "rock clean                # Removes everything"
     echo "rock forward PORT=3000    # Forwards 127.0.0.1:80 to 127.0.0.1:PORT"
     echo "rock port SERVICE=web     # Get the port of SERVICE"
-
+    echo "rock repair               # Repair Docker.qcow2"
     echo "rock help                 # Usage information"
     exit 1
   ;;
