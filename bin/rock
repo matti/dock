@@ -178,23 +178,37 @@ case $1 in
     esac
   ;;
   "images")
-    images=$(docker images)
+    images=$(docker images -a)
 
     case $2 in
-      "clean")
-        image_lines=$(printf "$images" | tail -n +2)
-        IFS=$'\n'
-        for image_line in $image_lines; do
-          image_name=$(echo $image_line | awk '{print $1}')
-          image_id=$(echo $image_line | awk '{print $3}')
-          if [[ "$image_name" =~ "$3" ]]; then
-            echo "'$3' found in $image_name"
-            set +e
-            docker rmi -f $image_id
-            set -e
-          fi
+      "rm")
+        case $3 in
+          *=*)
+            key=$(echo $3 | cut -d "=" -f 1)
+            value=$(echo $3 | cut -d "=" -f 2)
 
-        done
+            image_ids=$(docker images -a -f $key=$value --format "{{.ID}}")
+
+            echo "$image_ids" | xargs docker rmi -f
+          ;;
+          *)
+            image_lines=$(printf "$images" | tail -n +2)
+            IFS=$'\n'
+            for image_line in $image_lines; do
+              image_name=$(echo $image_line | awk '{print $1}')
+              image_id=$(echo $image_line | awk '{print $3}')
+
+              if [ "$image_id" == "$3" ]; then
+                docker rmi -f $image_id
+              elif [[ "$image_name" =~ "$3" ]]; then
+                echo "'$3' found in $image_name"
+                set +e
+                docker rmi -f $image_id
+                set -e
+              fi
+            done
+          ;;
+        esac
       ;;
       "rm")
         set +e
@@ -494,7 +508,7 @@ $contents" >> $file
     echo "Docker shortcuts:"
     echo ""
     echo "rock images               # List all images"
-    echo "rock images clean STARTS  # Delete images that starts with STARTS"
+    echo "rock images rm STARTS     # Delete images that starts with STARTS"
     echo "rock images rm NAME/ID    # Delete image by name or id"
     echo "rock networks             # List all networks"
     echo "rock networks rm          # Delete all networks"
